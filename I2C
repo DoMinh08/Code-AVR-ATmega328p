@@ -1,0 +1,56 @@
+// Master Transmitter(MT) and Master Receiver(MR)
+// The Functions are used in TWI at Master
+void TWI_Init(void)
+{
+	//set SCL to 200kHz
+	TWSR = 0x00;								// set Prescaler = 0 "set two final bits of TWSR to zero"
+	TWBR = 0x0C;								// set a value for TWI bit rate register
+	TWCR = (1<<TWEN);							// enable TWI
+}
+
+// TWI send start bit
+void TWI_SendStartBit(void)
+{
+	TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);		// 1<<TWINT : Clear TWI INT Flag, 1<<TWSTA : Send Start bit, 1<<TWEN : enable TWI transmission
+	while ((TWCR & (1<<TWINT)) == 0);			// wait for TWINT Flag set. This indicates condition has been transmitted
+}
+
+// TWI send Stop bit Function
+void TWI_SendStopBit(void)
+{
+	TWCR = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);		// 1<<TWINT : Clear TWI INT Flag, 1<<TWSTO : Send Stop bit, 1<<TWEN : enable TWI transmission
+}
+
+// Get status Function
+uint8_t TWI_GetStatus(void)
+{
+	uint8_t status;
+	//mask status
+	status = TWSR & 0xF8;						// The application designer should mask the prescaler bits to zero when checking the Status Bits
+	return status;
+}
+
+// TWI send a byte Function
+// (byte can be data_8bits or address of CLA+R/W)
+void TWI_WriteByte(uint8_t u8data)
+{
+	TWDR = u8data;								// send data or CLA+W/R
+	TWCR = (1<<TWINT)|(1<<TWEN);				// Clear TWI INT Flag
+	while ((TWCR & (1<<TWINT)) == 0);			// wait for TWINT Flag set. This indicates that SLA_W has been transmitted and ACK/NACK has been received
+}
+
+// Read byte with generating ACK
+uint8_t TWIReadACK(void)
+{
+	TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);		// 1<<TWINT : Clear TWI INT Flag, 1<<TWSTA : Send Start bit, 1<<TWEA : generate ACK
+	while ((TWCR & (1<<TWINT)) == 0);
+	return TWDR;
+}
+
+// Read byte with generating NACK
+uint8_t TWIReadNACK(void)
+{
+	TWCR = (1<<TWINT)|(1<<TWEN);
+	while ((TWCR & (1<<TWINT)) == 0);
+	return TWDR;
+}
